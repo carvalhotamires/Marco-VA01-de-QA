@@ -1,85 +1,149 @@
-====================================================================
+================================================================================
 DOCUMENTAÇÃO DE CENÁRIOS DE TESTE - TECH UNIDIASUP
 História de Usuário: Cálculo de Descontos Progressivos no E-Commerce
 Função Alvo: calcular_desconto(valor_compra, tipo_cliente)
-====================================================================
+================================================================================
 
-CRITÉRIOS DE ACEITE (REGRAS DE NEGÓCIO):
-1. Compras < R$ 100,00: 0% de desconto base.
-2. Compras >= R$ 100,00 e < R$ 500,00: 10% de desconto base.
-3. Compras >= R$ 500,00: 20% de desconto base.
-4. tipo_cliente == "VIP" (case-insensitive: maiúsculo/minúsculo): +5% extras sobre a base.
-   tipo_cliente == "COMUM": sem acréscimo (0% extra).
-5. Regra de Teto: valor máximo do desconto é R$ 200,00.
+1. CRITÉRIOS DE ACEITE EXPLÍCITOS (REGRAS DE NEGÓCIO):
+   - Compras < R$ 100,00: 0% de desconto base.
+   - Compras >= R$ 100,00 e < R$ 500,00: 10% de desconto base.
+   - Compras >= R$ 500,00: 20% de desconto base.
+   - tipo_cliente == "VIP" (case-insensitive): +5% extras sobre a porcentagem base.
+   - tipo_cliente == "COMUM": sem acréscimo (0% extra).
+   - Regra de Teto: o desconto máximo em reais nunca pode ultrapassar R$ 200,00.
 
---------------------------------------------------------------------
-TABELA DE CENÁRIOS DE TESTE (TÉCNICA DE PARTIÇÃO DE EQUIVALÊNCIA E VALOR LIMITE):
---------------------------------------------------------------------
+================================================================================
+2. CENÁRIOS DE TESTE DETALHADOS (TEXTUAL)
+================================================================================
 
-Cenário 1: Compra menor que R$ 100 com cliente COMUM (0% base + 0% extra = 0%)
-- Entrada: valor_compra = 50.00, tipo_cliente = "COMUM"
-- Esperado: R$ 0.00
+--------------------------------------------------------------------------------
+GRUPO A: CAMINHO FELIZ E FAIXAS DE DESCONTO BASE (PARTIÇÃO DE EQUIVALÊNCIA)
+--------------------------------------------------------------------------------
+Cenário 01: Compra menor que R$ 100 com cliente COMUM
+- Entrada: valor_compra = 50.00 | tipo_cliente = "COMUM"
+- Cálculo: 0% base + 0% extra = 0%
+- Resultado Esperado: R$ 0.00
 
-Cenário 2: Limite superior da faixa sem desconto base com cliente COMUM (99.99)
-- Entrada: valor_compra = 99.99, tipo_cliente = "COMUM"
-- Esperado: R$ 0.00
+Cenário 02: Compra intermediária (R$ 300) com cliente COMUM
+- Entrada: valor_compra = 300.00 | tipo_cliente = "COMUM"
+- Cálculo: 10% base de 300.00
+- Resultado Esperado: R$ 30.00
 
-Cenário 3: Compra menor que R$ 100 com cliente VIP (0% base + 5% extra = 5%)
-- Entrada: valor_compra = 80.00, tipo_cliente = "VIP"
-- Esperado: R$ 4.00 (5% de 80.00)
+Cenário 03: Compra alta (R$ 800) com cliente COMUM
+- Entrada: valor_compra = 800.00 | tipo_cliente = "COMUM"
+- Cálculo: 20% base de 800.00
+- Resultado Esperado: R$ 160.00
 
-Cenário 4: Limite exato de R$ 100,00 com cliente COMUM (10% base) [PONTO CRÍTICO / BUG JR]
-- Entrada: valor_compra = 100.00, tipo_cliente = "COMUM"
-- Esperado: R$ 10.00 (10% de 100.00)
-- Nota: O código do Dev Jr. usa `> 100`, ignorando R$ 100,00!
+--------------------------------------------------------------------------------
+GRUPO B: ANÁLISE DE VALOR LIMITE (FRONTEIRAS CRÍTICAS)
+--------------------------------------------------------------------------------
+Cenário 04: Limite superior da faixa de 0% (quase R$ 100) com COMUM
+- Entrada: valor_compra = 99.99 | tipo_cliente = "COMUM"
+- Cálculo: 0% base
+- Resultado Esperado: R$ 0.00
 
-Cenário 5: Limite exato de R$ 100,00 com cliente VIP (10% base + 5% extra = 15%) [BUG JR]
-- Entrada: valor_compra = 100.00, tipo_cliente = "VIP"
-- Esperado: R$ 15.00 (15% de 100.00)
+Cenário 05: Limite exato de R$ 100,00 com cliente COMUM (Transição para 10%)
+- Entrada: valor_compra = 100.00 | tipo_cliente = "COMUM"
+- Cálculo: 10% base de 100.00
+- Resultado Esperado: R$ 10.00
+- Justificativa: Testa se a regra "igual ou maior a 100" foi respeitada (>= e não >).
 
-Cenário 6: Faixa intermediária (R$ 300,00) com cliente COMUM (o que o Jr. testou de cabeça)
-- Entrada: valor_compra = 300.00, tipo_cliente = "COMUM"
-- Esperado: R$ 30.00 (10% de 300.00)
+Cenário 06: Limite exato de R$ 100,00 com cliente VIP (Transição para 15%)
+- Entrada: valor_compra = 100.00 | tipo_cliente = "VIP"
+- Cálculo: (10% + 5%) = 15% de 100.00
+- Resultado Esperado: R$ 15.00
 
-Cenário 7: Faixa intermediária com cliente VIP (10% base + 5% extra = 15%)
-- Entrada: valor_compra = 300.00, tipo_cliente = "VIP"
-- Esperado: R$ 45.00 (15% de 300.00)
+Cenário 07: Limite superior da faixa de 10% (quase R$ 500) com COMUM
+- Entrada: valor_compra = 499.99 | tipo_cliente = "COMUM"
+- Cálculo: 10% base de 499.99 = 49.999 -> arredondado para 50.00
+- Resultado Esperado: R$ 50.00
 
-Cenário 8: Limite superior da faixa de 10% (R$ 499,99) com cliente COMUM
-- Entrada: valor_compra = 499.99, tipo_cliente = "COMUM"
-- Esperado: R$ 50.00 (10% de 499.99 = 49.999 -> arredondado para 50.00)
+Cenário 08: Limite exato de R$ 500,00 com cliente COMUM (Transição para 20%)
+- Entrada: valor_compra = 500.00 | tipo_cliente = "COMUM"
+- Cálculo: 20% base de 500.00
+- Resultado Esperado: R$ 100.00
 
-Cenário 9: Limite inferior da faixa de 20% (R$ 500,00) com cliente COMUM
-- Entrada: valor_compra = 500.00, tipo_cliente = "COMUM"
-- Esperado: R$ 100.00 (20% de 500.00)
+Cenário 09: Limite exato de R$ 500,00 com cliente VIP (Transição para 25%)
+- Entrada: valor_compra = 500.00 | tipo_cliente = "VIP"
+- Cálculo: (20% + 5%) = 25% de 500.00
+- Resultado Esperado: R$ 125.00
 
-Cenário 10: Limite inferior da faixa de 20% (R$ 500,00) com cliente VIP (20% + 5% = 25%)
-- Entrada: valor_compra = 500.00, tipo_cliente = "VIP"
-- Esperado: R$ 125.00 (25% de 500.00)
+--------------------------------------------------------------------------------
+GRUPO C: CLIENTE VIP E TRATAMENTO DE TEXTO (CASE-INSENSITIVE E ESPAÇOS)
+--------------------------------------------------------------------------------
+Cenário 10: Compra abaixo de R$ 100 com cliente VIP (Bônus isolado)
+- Entrada: valor_compra = 80.00 | tipo_cliente = "VIP"
+- Cálculo: 0% base + 5% extra = 5% de 80.00
+- Resultado Esperado: R$ 4.00
 
-Cenário 11: Compra alta de R$ 800,00 com cliente COMUM (20%)
-- Entrada: valor_compra = 800.00, tipo_cliente = "COMUM"
-- Esperado: R$ 160.00 (20% de 800.00)
+Cenário 11: Compra intermediária com cliente VIP maiúsculo ("VIP")
+- Entrada: valor_compra = 300.00 | tipo_cliente = "VIP"
+- Cálculo: 15% de 300.00
+- Resultado Esperado: R$ 45.00
 
-Cenário 12: VIP com letras minúsculas "vip" [PONTO CRÍTICO / BUG JR]
-- Entrada: valor_compra = 200.00, tipo_cliente = "vip"
-- Esperado: R$ 30.00 (15% de 200.00)
-- Nota: O código do Dev Jr. compara estritamente com `"VIP"`.
+Cenário 12: VIP totalmente em minúsculo ("vip")
+- Entrada: valor_compra = 200.00 | tipo_cliente = "vip"
+- Cálculo: 15% de 200.00
+- Resultado Esperado: R$ 30.00
 
-Cenário 13: VIP com letras mistas "Vip" [BUG JR]
-- Entrada: valor_compra = 200.00, tipo_cliente = "Vip"
-- Esperado: R$ 30.00 (15% de 200.00)
+Cenário 13: VIP com capitalização mista ("Vip" ou "vIp")
+- Entrada: valor_compra = 200.00 | tipo_cliente = "Vip"
+- Cálculo: 15% de 200.00
+- Resultado Esperado: R$ 30.00
 
-Cenário 14: Regra do Teto - Desconto que ultrapassaria R$ 200,00 com cliente VIP
-- Entrada: valor_compra = 1000.00, tipo_cliente = "VIP"
-- Cálculo teórico: 25% de 1000.00 = R$ 250.00
-- Esperado: R$ 200.00 (limitado pelo teto)
+Cenário 14: VIP com espaços acidentais antes ou depois (" VIP ")
+- Entrada: valor_compra = 200.00 | tipo_cliente = " VIP "
+- Cálculo: 15% de 200.00
+- Resultado Esperado: R$ 30.00
 
-Cenário 15: Regra do Teto - Desconto que ultrapassaria R$ 200,00 com cliente COMUM
-- Entrada: valor_compra = 1500.00, tipo_cliente = "COMUM"
-- Cálculo teórico: 20% de 1500.00 = R$ 300.00
-- Esperado: R$ 200.00 (limitado pelo teto)
+--------------------------------------------------------------------------------
+GRUPO D: REGRA DO TETO MÁXIMO DE R$ 200,00
+--------------------------------------------------------------------------------
+Cenário 15: Desconto atinge exatamente o teto de R$ 200,00 com VIP
+- Entrada: valor_compra = 800.00 | tipo_cliente = "VIP"
+- Cálculo: 25% de 800.00 = 200.00
+- Resultado Esperado: R$ 200.00
 
-Cenário 16: Valor exatamente no teto (R$ 800,00 VIP -> 25% = 200.00)
-- Entrada: valor_compra = 800.00, tipo_cliente = "VIP"
-- Esperado: R$ 200.00
+Cenário 16: Desconto ultrapassa o teto com cliente VIP (R$ 1.000)
+- Entrada: valor_compra = 1000.00 | tipo_cliente = "VIP"
+- Cálculo teórico: 25% de 1000.00 = 250.00 -> limitado ao teto
+- Resultado Esperado: R$ 200.00
+
+Cenário 17: Desconto ultrapassa o teto com cliente COMUM (R$ 1.500)
+- Entrada: valor_compra = 1500.00 | tipo_cliente = "COMUM"
+- Cálculo teórico: 20% de 1500.00 = 300.00 -> limitado ao teto
+- Resultado Esperado: R$ 200.00
+
+Cenário 18: Compra com valor muito alto (R$ 5.000)
+- Entrada: valor_compra = 5000.00 | tipo_cliente = "VIP"
+- Cálculo teórico: 25% de 5000.00 = 1250.00 -> limitado ao teto
+- Resultado Esperado: R$ 200.00
+
+--------------------------------------------------------------------------------
+GRUPO E: DADOS INESPERADOS E CASOS DE BORDA (NÃO EXPLÍCITOS NA REGRA)
+--------------------------------------------------------------------------------
+Cenário 19: Compra com valor zero (R$ 0,00)
+- Entrada: valor_compra = 0.00 | tipo_cliente = "COMUM"
+- Resultado Esperado: R$ 0.00 (Nenhum desconto aplicado sobre valor nulo)
+
+Cenário 20: Compra com valor negativo (ex: -50.00)
+- Entrada: valor_compra = -50.00 | tipo_cliente = "COMUM"
+- Resultado Esperado: R$ 0.00 ou lançamento de exceção (ValueError).
+- Justificativa: Não faz sentido desconto sobre valores de compra negativos.
+
+Cenário 21: Categoria de cliente desconhecida / não cadastrada ("PRATA", "OURO")
+- Entrada: valor_compra = 300.00 | tipo_cliente = "PRATA"
+- Resultado Esperado: R$ 30.00 (Recebe o desconto base de 10%, sem os 5% do VIP)
+
+Cenário 22: Categoria de cliente vazia ou apenas espaços ("" ou "   ")
+- Entrada: valor_compra = 300.00 | tipo_cliente = ""
+- Resultado Esperado: R$ 30.00 (Comporta-se como cliente comum, sem bônus)
+
+Cenário 23: Categoria de cliente Nula (None)
+- Entrada: valor_compra = 300.00 | tipo_cliente = None
+- Resultado Esperado: R$ 30.00 (ou tratamento de erro, sem gerar AttributeError na aplicação)
+
+Cenário 24: Tipo de dado inválido para o valor da compra (ex: string "100" ou None)
+- Entrada: valor_compra = "100" ou None | tipo_cliente = "COMUM"
+- Resultado Esperado: Lançamento de erro de validação (TypeError/ValueError)
+- Justificativa: Protege o sistema contra quebras na multiplicação por número float.
